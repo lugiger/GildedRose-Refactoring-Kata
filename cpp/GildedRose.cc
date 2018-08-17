@@ -3,102 +3,111 @@
 GildedRose::GildedRose(vector<Item> & items) : items(items)
 {}
 
-void GildedRose::updateQuality() 
-{
-    for (Item & item : items) {
-        updateItem(item);
-    }
-}
-
-void GildedRose::updateItem(Item & item)
-{
-    updateItemQuality(item);
-    updateItemSellIn(item);
-    updateItemQualityPostSellIn(item);
-}
-
-void GildedRose::updateItemQuality(Item & item)
+ItemUpdater * GildedRose::getUpdater(Item & item)
 {
     if (item.name == "Aged Brie")
     {
-        incrementQuality(item);
+        return new BrieItemUpdater;
     }
     else if (item.name == "Backstage passes to a TAFKAL80ETC concert")
     {
-        incrementQuality(item);
-        if (item.sellIn < 11)
-        {
-            incrementQuality(item);
-        }
-
-        if (item.sellIn < 6)
-        {
-            incrementQuality(item);
-        }
+        return new BackstagePassItemUpdater;
     }
     else if (item.name == "Sulfuras, Hand of Ragnaros")
     {
-        return;
+        return new HandOfSulfurasItemUpdater;
     }
     else if (item.name == "Conjured Mana Cake")
     {
-        decrementQuality(item);
-        decrementQuality(item);
+        return new ConjuredItemUpdater;
     }
     else
     {
-        decrementQuality(item);
+        return new ItemUpdater;
     }
 }
 
-void GildedRose::incrementQuality(Item & item)
+void GildedRose::updateQuality() 
 {
-    if (item.quality < 50)
-    {
-        item.quality = item.quality + 1;
+    for (Item & item : items) {
+        ItemUpdater * updater = getUpdater(item);
+        updater->updateItem(item);
     }
 }
 
-void GildedRose::decrementQuality(Item & item)
+void ItemUpdater::updateItem(Item & item)
 {
-    if (item.quality > 0)
-    {
-        item.quality = item.quality - 1;
-    }
-}
-
-void GildedRose::updateItemSellIn(Item & item)
-{
-    if (item.name != "Sulfuras, Hand of Ragnaros")
-    {
-        item.sellIn = item.sellIn - 1;
-    }
-}
-
-void GildedRose::updateItemQualityPostSellIn(Item & item)
-{
+    updateItemQuality(item);
+    updateItemSellIn(item);
     if (item.sellIn < 0)
+        updateItemQualityPostSellIn(item);
+}
+
+void ItemUpdater::updateItemQuality(Item & item)
+{
+    changeQuality(item, -1);
+}
+
+void BrieItemUpdater::updateItemQuality(Item & item)
+{
+    changeQuality(item, 1);
+}
+
+void BackstagePassItemUpdater::updateItemQuality(Item & item)
+{
+    changeQuality(item, 1);
+    if (item.sellIn < 11)
     {
-        if (item.name == "Aged Brie")
-        {
-            incrementQuality(item);
-        }
-        else if (item.name == "Backstage passes to a TAFKAL80ETC concert")
-        {
-            item.quality = 0;
-        }
-        else if (item.name == "Sulfuras, Hand of Ragnaros")
-        {
-            return;
-        }
-        else if (item.name == "Conjured Mana Cake")
-        {
-            decrementQuality(item);
-            decrementQuality(item);
-        }
-        else
-        {
-            decrementQuality(item);
-        }
+        changeQuality(item, 1);
+    }
+
+    if (item.sellIn < 6)
+    {
+        changeQuality(item, 1);
     }
 }
+
+void ConjuredItemUpdater::updateItemQuality(Item & item)
+{
+    changeQuality(item, -2);
+}
+
+void HandOfSulfurasItemUpdater::updateItemQuality(Item & item) {}
+
+void ItemUpdater::changeQuality(Item & item, int amount)
+{
+    item.quality += amount;
+    if (item.quality > 50)
+        item.quality = 50;
+    if (item.quality < 0)
+        item.quality = 0;
+}
+
+void ItemUpdater::updateItemSellIn(Item & item)
+{
+        item.sellIn = item.sellIn - 1;
+}
+
+void HandOfSulfurasItemUpdater::updateItemSellIn(Item & item) {}
+
+void ItemUpdater::updateItemQualityPostSellIn(Item & item)
+{
+    changeQuality(item, -1);
+}
+
+void BrieItemUpdater::updateItemQualityPostSellIn(Item & item)
+{
+    changeQuality(item, 1);
+}
+
+void BackstagePassItemUpdater::updateItemQualityPostSellIn(Item & item)
+{
+    item.quality = 0;
+}
+
+void ConjuredItemUpdater::updateItemQualityPostSellIn(Item & item)
+{
+    changeQuality(item, -2);
+}
+
+void HandOfSulfurasItemUpdater::updateItemQualityPostSellIn(Item & item) {}
